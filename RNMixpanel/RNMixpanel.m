@@ -19,8 +19,9 @@
 Mixpanel *mixpanel = nil;
 
 // Called by AppDelegate.m
-+ (void)sharedInstanceWithToken:(NSString *)apiToken launchOptions:(NSDictionary *)launchOptions {
++ (Mixpanel *)sharedInstanceWithToken:(NSString *)apiToken launchOptions:(NSDictionary *)launchOptions {
     mixpanel = [Mixpanel sharedInstanceWithToken:apiToken launchOptions:launchOptions];
+    return mixpanel;
 }
 
 // Expose this module to the React Native bridge
