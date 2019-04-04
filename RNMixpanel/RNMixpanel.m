@@ -24,6 +24,17 @@ NSDictionary *instances = nil;
     return instance;
 }
 
++ (Mixpanel *)sharedInstanceWithToken:(NSString *)apiToken launchOptions:(NSDictionary *)launchOptions {
+    Mixpanel* instance = [Mixpanel sharedInstanceWithToken:apiToken launchOptions:launchOptions];
+    // copy instances and add the new instance.  then reassign instances
+    NSMutableDictionary *newInstances = [NSMutableDictionary dictionaryWithDictionary:instances];
+    [newInstances setObject:instance forKey:apiToken];
+    instances = [NSDictionary dictionaryWithDictionary:newInstances];
+    [instance applicationDidBecomeActive:nil];
+
+    return mixpanel;
+}
+
 // Expose this module to the React Native bridge
 RCT_EXPORT_MODULE(RNMixpanel)
 
