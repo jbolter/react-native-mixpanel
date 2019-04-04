@@ -71,6 +71,11 @@ export class MixpanelInstance {
     return RNMixpanel.flush(this.apiToken)
   }
 
+  disableIpAddressGeolocalization(): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('disableIpAddressGeolocalization'))
+    return RNMixpanel.disableIpAddressGeolocalization(this.apiToken)
+  }
+
   alias(alias: string): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('createAlias'))
 
@@ -135,6 +140,12 @@ export class MixpanelInstance {
     if (!this.initialized) throw new Error(uninitializedError('increment'))
 
     return RNMixpanel.increment(property, by, this.apiToken)
+  }
+
+  union(name: string, properties: any[]): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('union'))
+
+    return RNMixpanel.union(name, properties, this.apiToken)
   }
 
   removePushDeviceToken(deviceToken: Object): Promise<void> {
@@ -241,6 +252,12 @@ export default {
     defaultInstance.flush()
   },
 
+  disableIpAddressGeolocalization() {
+      if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+      defaultInstance.disableIpAddressGeolocalization()
+  },
+
   createAlias(alias: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
@@ -317,6 +334,12 @@ export default {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
     defaultInstance.increment(property, by)
+  },
+
+  union(name: string, properties: any[]) {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.union(name, properties)
   },
 
   addPushDeviceToken(token: string) {

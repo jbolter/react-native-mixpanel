@@ -46,6 +46,21 @@ RCT_EXPORT_METHOD(sharedInstanceWithToken:(NSString *)apiToken
     }
 }
 
+// setAppSessionProperties iOS
+// setAppSessionProperties iOS
+RCT_EXPORT_METHOD(setAppSessionPropertiesIOS:(NSDictionary *)properties) {
+    if ([properties objectForKey:@"minimumSessionDuration"]) {
+        NSNumber *minimumSessionDuration = properties[@"minimumSessionDuration"];
+        long long int intValue = [minimumSessionDuration longLongValue];
+        [Mixpanel sharedInstance].minimumSessionDuration = intValue;
+    }
+
+    if ([properties objectForKey:@"maximumSessionDuration"]) {
+        NSNumber *maximumSessionDuration = properties[@"maximumSessionDuration"];
+        long long int intValue = [maximumSessionDuration longLongValue];
+        [Mixpanel sharedInstance].maximumSessionDuration = intValue;
+    }
+}
 
 // get distinct id
 RCT_EXPORT_METHOD(getDistinctId:(NSString *)apiToken
@@ -69,6 +84,14 @@ RCT_EXPORT_METHOD(track:(NSString *)event
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     [[self getInstance:apiToken] track:event];
+    resolve(nil);
+}
+
+// disable ip address geolocalization
+RCT_EXPORT_METHOD(disableIpAddressGeolocalization:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    [self getInstance:apiToken].useIPAddressForGeoLocation = NO;
     resolve(nil);
 }
 
@@ -224,6 +247,17 @@ RCT_EXPORT_METHOD(addPushDeviceToken:(NSString *)pushDeviceToken
         [deviceToken appendBytes:&whole_byte length:1];
     }
     [[self getInstance:apiToken].people addPushDeviceToken:deviceToken];
+    resolve(nil);
+}
+
+// People union
+RCT_EXPORT_METHOD(union:(NSString *)name
+                  properties:(NSArray *)properties
+                  apiToken:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys: properties, name, nil];
+    [[self getInstance:apiToken].people union:dict];
     resolve(nil);
 }
 
