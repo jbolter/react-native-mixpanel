@@ -32,7 +32,7 @@ NSDictionary *instances = nil;
     instances = [NSDictionary dictionaryWithDictionary:newInstances];
     [instance applicationDidBecomeActive:nil];
 
-    return mixpanel;
+    return instance;
 }
 
 // Expose this module to the React Native bridge
