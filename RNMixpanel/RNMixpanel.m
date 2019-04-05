@@ -9,6 +9,8 @@
 
 #import "RNMixpanel.h"
 #import "Mixpanel.h"
+#import "MPTweak.h"
+#import "MPTweakStore.h"
 
 @interface Mixpanel (ReactNative)
 - (void)applicationDidBecomeActive:(NSNotification *)notification;
@@ -150,6 +152,20 @@ RCT_EXPORT_METHOD(timeEvent:(NSString *)event
                   reject:(RCTPromiseRejectBlock)reject) {
     [[self getInstance:apiToken] timeEvent:event];
     resolve(nil);
+}
+
+// MPTweakValue
+RCT_EXPORT_METHOD(tweakValue:(NSString *)name
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+
+  MPTweak *tweak = [[MPTweakStore sharedInstance] tweakWithName:name];
+  if (tweak) {
+    resolve([tweak currentValue]);
+  } else {
+    // Tweak not found in app
+    resolve(nil);
+  }
 }
 
 // Register super properties

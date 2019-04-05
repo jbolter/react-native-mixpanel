@@ -54,6 +54,12 @@ export class MixpanelInstance {
     return RNMixpanel.getSuperProperty(propertyName, this.apiToken)
   }
 
+  tweakValue(name: string): Promise<any> {
+    if (!this.initialized) throw new Error(uninitializedError('tweakValue'))
+
+    return RNMixpanel.tweakValue(name)
+  }
+
   /*
   Logs the event.
   */
@@ -328,6 +334,12 @@ export default {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
     defaultInstance.trackChargeWithProperties(charge, properties)
+  },
+
+  tweakValue(name: string) {
+      if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+      return defaultInstance.tweakValue(name)
   },
 
   increment(property: string, by: number) {
