@@ -42,6 +42,10 @@ RCT_EXPORT_MODULE(RNMixpanel)
 
 // sharedInstanceWithToken
 RCT_EXPORT_METHOD(sharedInstanceWithToken:(NSString *)apiToken
+                  optOutTrackingByDefault:(BOOL)optOutTrackingByDefault
+                  trackCrashes:(BOOL)trackCrashes
+                  automaticPushTracking:(BOOL)automaticPushTracking
+                  launchOptions:(nullable NSDictionary *)launchOptions
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     @synchronized(self) {
@@ -49,7 +53,13 @@ RCT_EXPORT_METHOD(sharedInstanceWithToken:(NSString *)apiToken
             resolve(nil);
             return;
         }
-        Mixpanel *instance = [Mixpanel sharedInstanceWithToken:apiToken];
+
+        Mixpanel *instance = [Mixpanel sharedInstanceWithToken:apiToken
+                                                 launchOptions:launchOptions
+                                                  trackCrashes:trackCrashes
+                                         automaticPushTracking:automaticPushTracking
+                                       optOutTrackingByDefault:optOutTrackingByDefault];
+
         // copy instances and add the new instance.  then reassign instances
         NSMutableDictionary *newInstances = [NSMutableDictionary dictionaryWithDictionary:instances];
         [newInstances setObject:instance forKey:apiToken];
@@ -59,7 +69,6 @@ RCT_EXPORT_METHOD(sharedInstanceWithToken:(NSString *)apiToken
     }
 }
 
-// setAppSessionProperties iOS
 // setAppSessionProperties iOS
 RCT_EXPORT_METHOD(setAppSessionPropertiesIOS:(NSDictionary *)properties) {
     if ([properties objectForKey:@"minimumSessionDuration"]) {
@@ -128,11 +137,13 @@ RCT_EXPORT_METHOD(flush:(NSString *)apiToken
 }
 
 // create Alias
-RCT_EXPORT_METHOD(createAlias:(NSString *)old_id
+RCT_EXPORT_METHOD(createAlias:(NSString *)alias
+                  oldDistinctID:(nullable NSString *)oldDistinctID
                   apiToken:(NSString *)apiToken
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    [[self getInstance:apiToken] createAlias:old_id forDistinctID:[self getInstance:apiToken].distinctId];
+    NSString *distinctId = oldDistinctID ? oldDistinctID : [self getInstance:apiToken].distinctId;
+    [[self getInstance:apiToken] createAlias:alias forDistinctID:distinctId];
     resolve(nil);
 }
 
@@ -186,6 +197,13 @@ RCT_EXPORT_METHOD(registerSuperPropertiesOnce:(NSDictionary *)properties
     resolve(nil);
 }
 
+RCT_EXPORT_METHOD(clearSuperProperties:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    [[self getInstance:apiToken] clearSuperProperties];
+    resolve(nil);
+}
+
 // Init push notification
 RCT_EXPORT_METHOD(initPushHandling:(NSString *) token
                   apiToken:(NSString *)apiToken
@@ -213,10 +231,22 @@ RCT_EXPORT_METHOD(setOnce:(NSDictionary *)properties
 }
 
 // Remove Person's Push Token (iOS-only)
-RCT_EXPORT_METHOD(removePushDeviceToken:(NSData *)deviceToken
+RCT_EXPORT_METHOD(removePushDeviceToken:(NSString *)pushDeviceToken
                   apiToken:(NSString *)apiToken
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
+
+    NSMutableData *deviceToken = [[NSMutableData alloc] init];
+    unsigned char whole_byte;
+    char byte_chars[3] = {'\0','\0','\0'};
+    int i;
+    for (i=0; i < [pushDeviceToken length]/2; i++) {
+        byte_chars[0] = [pushDeviceToken characterAtIndex:i*2];
+        byte_chars[1] = [pushDeviceToken characterAtIndex:i*2+1];
+        whole_byte = strtol(byte_chars, NULL, 16);
+        [deviceToken appendBytes:&whole_byte length:1];
+    }
+
     [[self getInstance:apiToken].people removePushDeviceToken:deviceToken];
     resolve(nil);
 }
@@ -288,6 +318,17 @@ RCT_EXPORT_METHOD(union:(NSString *)name
     resolve(nil);
 }
 
+// People append
+RCT_EXPORT_METHOD(append:(NSString *)name
+                  properties:(NSArray *)properties
+                  apiToken:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys: properties, name, nil];
+    [[self getInstance:apiToken].people append:dict];
+    resolve(nil);
+}
+
 // reset
 RCT_EXPORT_METHOD(reset:(NSString *)apiToken
                   resolve:(RCTPromiseResolveBlock)resolve
@@ -296,6 +337,29 @@ RCT_EXPORT_METHOD(reset:(NSString *)apiToken
     NSString *uuid = [[NSUUID UUID] UUIDString];
     [[self getInstance:apiToken] identify:uuid];
     resolve(nil);
+}
+
+// showNotification
+RCT_EXPORT_METHOD(showNotification:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    [[self getInstance:apiToken] showNotification];
+    resolve(nil);
+}
+
+// Opt in/out tracking
+RCT_EXPORT_METHOD(optOutTracking:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    [[self getInstance:apiToken] optOutTracking];
+    resolve(nil);;
+}
+
+RCT_EXPORT_METHOD(optInTracking:(NSString *)apiToken
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    [[self getInstance:apiToken] optInTracking];
+    resolve(nil);;
 }
 
 @end

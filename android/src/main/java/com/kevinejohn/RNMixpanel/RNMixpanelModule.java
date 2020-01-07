@@ -135,7 +135,7 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
     }
 
     @ReactMethod
-    public void sharedInstanceWithToken(final String token, Promise promise) {
+    public void sharedInstanceWithToken(final String token, final Boolean optOutTracking, Promise promise) {
         synchronized (this) {
             // an instance can pre-exist when reloading javascript
             if (instances != null && instances.containsKey(token)) {
@@ -147,7 +147,11 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
                 promise.reject(new Throwable("no React application context"));
                 return;
             }
-            final MixpanelAPI instance = MixpanelAPI.getInstance(reactApplicationContext, token);
+
+            final MixpanelAPI instance = MixpanelAPI.getInstance(reactApplicationContext,
+                                                                 token,
+                                                                 optOutTracking);
+
             Map<String, MixpanelAPI> newInstances = new HashMap<>();
             if (instances != null) {
                 newInstances.putAll(instances);
@@ -178,17 +182,20 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
 
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.track(name, obj);
+            if (obj != null) {
+                instance.track(name, obj);
+            }
         }
         promise.resolve(null);
     }
 
 
     @ReactMethod
-    public void createAlias(final String old_id, final String apiToken, Promise promise) {
+    public void createAlias(final String alias, final String oldDistinctID, final String apiToken, Promise promise) {
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.alias(old_id, instance.getDistinctId());
+            String distinctID = (oldDistinctID != null) ? oldDistinctID : instance.getDistinctId();
+            instance.alias(alias, distinctID);
         }
         promise.resolve(null);
     }
@@ -222,7 +229,9 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.registerSuperProperties(obj);
+            if (obj != null) {
+                instance.registerSuperProperties(obj);
+            }
         }
         promise.resolve(null);
     }
@@ -237,7 +246,18 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.registerSuperPropertiesOnce(obj);
+            if (obj != null) {
+                instance.registerSuperPropertiesOnce(obj);
+            }
+        }
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void clearSuperProperties(final String apiToken, Promise promise) {
+        final MixpanelAPI instance = getInstance(apiToken);
+        synchronized(instance) {
+            instance.clearSuperProperties();
         }
         promise.resolve(null);
     }
@@ -262,7 +282,9 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
 
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.getPeople().set(obj);
+            if (obj != null) {
+                instance.getPeople().set(obj);
+            }
         }
         promise.resolve(null);
     }
@@ -277,11 +299,25 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.getPeople().setOnce(obj);
+            if (obj != null) {
+                instance.getPeople().setOnce(obj);
+            }
         }
         promise.resolve(null);
     }
 
+    // Android only
+    @ReactMethod
+    public void getPushRegistrationId(final String apiToken, Promise promise) {
+        final MixpanelAPI instance = getInstance(apiToken);
+        if (instance == null) {
+            promise.reject(new Throwable("no mixpanel instance available."));
+            return;
+        }
+        synchronized(instance) {
+            promise.resolve(instance.getPeople().getPushRegistrationId());
+        }
+    }
 
     // Android only
     @ReactMethod
@@ -295,10 +331,14 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
 
     // Android only
     @ReactMethod
-    public void clearPushRegistrationId(final String apiToken, Promise promise) {
+    public void clearPushRegistrationId(final String token, final String apiToken, Promise promise) {
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.getPeople().clearPushRegistrationId();
+            if (token != null) {
+                instance.getPeople().clearPushRegistrationId(token);
+            } else {
+                instance.getPeople().clearPushRegistrationId();
+            }
         }
         promise.resolve(null);
     }
@@ -322,7 +362,9 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.getPeople().trackCharge(charge, obj);
+            if (obj != null) {
+                instance.getPeople().trackCharge(charge, obj);
+            }
         }
         promise.resolve(null);
     }
@@ -346,7 +388,26 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         final MixpanelAPI instance = getInstance(apiToken);
         synchronized(instance) {
-            instance.getPeople().union(name, obj);
+            if (obj != null) {
+                instance.getPeople().union(name, obj);
+            }
+        }
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void append(final String name, final ReadableArray properties, final String apiToken, Promise promise) {
+        JSONArray obj = null;
+        try {
+            obj = RNMixpanelModule.reactToJSON(properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        final MixpanelAPI instance = getInstance(apiToken);
+        synchronized(instance) {
+            if (obj != null) {
+                instance.getPeople().append(name, obj);
+            }
         }
         promise.resolve(null);
     }
@@ -392,6 +453,45 @@ public class RNMixpanelModule extends ReactContextBaseJavaModule implements Life
         }
         synchronized(instance) {
             promise.resolve(instance.getDistinctId());
+        }
+    }
+
+    @ReactMethod
+    public void showNotificationIfAvailable(final String apiToken, Promise promise) {
+        final MixpanelAPI instance = getInstance(apiToken);
+        if (instance == null) {
+            promise.reject(new Throwable("no mixpanel instance available."));
+            return;
+        }
+        synchronized(instance) {
+            instance.getPeople().showNotificationIfAvailable(this.getCurrentActivity());
+        }
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void optOutTracking(final String apiToken, Promise promise) {
+        final MixpanelAPI instance = getInstance(apiToken);
+        if (instance == null) {
+            promise.reject(new Throwable("no mixpanel instance available."));
+            return;
+        }
+        synchronized(instance) {
+            instance.optOutTracking();
+            promise.resolve(null);
+        }
+    }
+
+    @ReactMethod
+    public void optInTracking(final String apiToken, Promise promise) {
+        final MixpanelAPI instance = getInstance(apiToken);
+        if (instance == null) {
+            promise.reject(new Throwable("no mixpanel instance available."));
+            return;
+        }
+        synchronized(instance) {
+            instance.optInTracking();
+            promise.resolve(null);
         }
     }
 }
